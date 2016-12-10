@@ -1,0 +1,30 @@
+{
+  "name": "verisure",
+  "version": "1.0.0",
+  "description": "A module for reading and changing status of Verisure devices.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ptz0n/node-verisure.git"
+  },
+  "keywords": [
+    "verisure",
+    "alarm",
+    "automation"
+  ],
+  "author": [
+    "Erik Eng"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ptz0n/node-verisure/issues"
+  },
+  "homepage": "https://github.com/ptz0n/node-verisure#readme",
+  "dependencies": {
+    "request": "^2.79.0",
+    "xml2js": "^0.4.17"
+  },
+  "devDependencies": {
+    "mocha": "^3.2.0"
+  }
+}
