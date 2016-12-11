@@ -37,9 +37,9 @@ describe('Methods', function() {
   it('should request installations', function(done) {
     const email = 'my@email.com'
     scope.get(`/xbn/2/installation/search?email=${email}`)
-      .replyWithFile(200, `${__dirname}/responses/installations.xml`)
+      .replyWithFile(200, `${__dirname}/responses/installations.json`)
     verisure.installations('myExampleToken', email, function(err, installations) {
-      assert.equal(installations[0].giid[0], '123456789')
+      assert.equal(installations[0].giid, '123456789')
       done()
     })
   })
@@ -57,9 +57,9 @@ describe('Methods', function() {
 
   it('should request overview by installation as object', function(done) {
     const installation = {
-      giid: ['myGiid']
+      giid: 'myGiid'
     }
-    scope.get(`/xbn/2/installation/${installation.giid[0]}/overview`)
+    scope.get(`/xbn/2/installation/${installation.giid}/overview`)
       .replyWithFile(200, `${__dirname}/responses/overview.json`)
     verisure.overview('myExampleToken', installation, function(err, overview) {
       assert.equal(typeof overview, 'object')

@@ -1,0 +1,16 @@
+[
+  {
+    "giid": "123456789",
+    "firmwareVersion": 0,
+    "routingGroup": "SE",
+    "shard": 10,
+    "locale": "sv_SE",
+    "signalFilterId": 1,
+    "deleted": false,
+    "cid": "00123456",
+    "street": "Sveavägen 1",
+    "streetNo1": "",
+    "streetNo2": "",
+    "alias": "Sveavägen"
+  }
+]

@@ -1,5 +1,5 @@
 const request = require('request')
-const parseXml = require('xml2js').parseString
+const striptags = require('striptags')
 
 const API_HOST = 'e-api02.verisure.com'
 
@@ -29,9 +29,7 @@ module.exports = {
       }
     }, function(err, res, body) {
       if(err) return callback(err)
-      parseXml(body, function(err, result) {
-        callback(err, result.response.string[0])
-      })
+      callback(null, striptags(body).trim())
     })
   },
 
@@ -39,18 +37,17 @@ module.exports = {
     apiClient({
       uri: `/installation/search?email=${email}`,
       headers: {
-        'Cookie': `vid=${token}`
-      }
+        'Cookie': `vid=${token}`,
+        'Accept': 'application/json, text/javascript, */*; q=0.01'
+      },
+      json: true
     }, function(err, res, body) {
-      if(err) return callback(err)
-      parseXml(body, function(err, result) {
-        callback(err, result.response.installation)
-      })
+      callback(err, body)
     })
   },
 
   overview: function(token, installation, callback) {
-    giid = typeof installation == 'string' ? installation : installation.giid[0]
+    giid = typeof installation == 'string' ? installation : installation.giid
     apiClient({
       uri: `/installation/${giid}/overview`,
       headers: {
