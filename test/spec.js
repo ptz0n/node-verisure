@@ -47,9 +47,7 @@ describe('Methods', function() {
   it('should request overview by installation as string', function(done) {
     const installation = 'myGiid'
     scope.get(`/xbn/2/installation/${installation}/overview`)
-      .replyWithFile(200, `${__dirname}/responses/overview.json`, {
-        'content-type': 'application/json'
-      })
+      .replyWithFile(200, `${__dirname}/responses/overview.json`)
     verisure.overview('myExampleToken', installation, function(err, overview) {
       assert.equal(typeof overview, 'object')
       assert.equal(overview.armstateCompatible, true)
@@ -62,9 +60,7 @@ describe('Methods', function() {
       giid: ['myGiid']
     }
     scope.get(`/xbn/2/installation/${installation.giid[0]}/overview`)
-      .replyWithFile(200, `${__dirname}/responses/overview.json`, {
-        'content-type': 'application/json'
-      })
+      .replyWithFile(200, `${__dirname}/responses/overview.json`)
     verisure.overview('myExampleToken', installation, function(err, overview) {
       assert.equal(typeof overview, 'object')
       assert.equal(overview.armstateCompatible, true)
