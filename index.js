@@ -17,6 +17,9 @@ const buildCredientials = function(email, password) {
 
 
 module.exports = {
+  _apiClient: apiClient,
+  _buildCredientials: buildCredientials,
+
   auth: function(email, password, callback) {
     apiClient({
       uri: '/cookie',

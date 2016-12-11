@@ -1,0 +1,59 @@
+{
+  "armState": {
+    "statusType": "DISARMED",
+    "date": "2016-01-01T00:00:00.000Z",
+    "name": "John Doe",
+    "changedVia": "TAG"
+  },
+  "armstateCompatible": true,
+  "controlPlugs": [],
+  "smartPlugs": [],
+  "doorLockStatusList": [],
+  "totalSmsCount": 0,
+  "climateValues": [
+    {
+      "deviceLabel": "ABCD 1234",
+      "deviceArea": "Hall",
+      "deviceType": "SMOKE2",
+      "temperature": 22.0,
+      "humidity": 30,
+      "time": "2016-01-01T00:00:00.000Z"
+    },
+    {
+      "deviceLabel": "BCDE 2345",
+      "deviceArea": "Trapp",
+      "deviceType": "VOICEBOX1",
+      "temperature": 22.0,
+      "time": "2016-01-01T00:00:00.000Z"
+    }
+  ],
+  "installationErrorList": [],
+  "pendingChanges": 0,
+  "ethernetModeActive": true,
+  "ethernetConnectedNow": true,
+  "heatPumps": [],
+  "smartCameras": [],
+  "latestEthernetStatus": {
+    "latestEthernetTestResult": true,
+    "testDate": "2016-01-01T00:00:00.000Z",
+    "protectedArea": "Övre allrum",
+    "deviceLabel": "BCDE 2345"
+  },
+  "customerImageCameras": [],
+  "batteryProcess": {
+    "active": false
+  },
+  "eventCounts": [],
+  "doorWindow": {
+    "reportState": true,
+    "doorWindowDevice": [
+      {
+        "deviceLabel": "DEFG 4567",
+        "area": "Entrédörr",
+        "state": "CLOSE",
+        "wired": true,
+        "testDate": "2016-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
