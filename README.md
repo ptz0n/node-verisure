@@ -1,5 +1,7 @@
 # node-verisure
 
+[![Build Status](https://travis-ci.org/ptz0n/node-verisure.svg?branch=master)](https://travis-ci.org/ptz0n/node-verisure)
+
 A module for reading and changing status of Verisure devices.
 
 ### Legal Disclaimer
