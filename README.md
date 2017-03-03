@@ -1,5 +1,7 @@
 # node-verisure
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/ptz0n/node-verisure.svg)](https://greenkeeper.io/)
+
 [![Build Status](https://travis-ci.org/ptz0n/node-verisure.svg?branch=master)](https://travis-ci.org/ptz0n/node-verisure)
 
 A module for reading and changing status of Verisure devices.
