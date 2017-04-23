@@ -1,3 +1,5 @@
+'use strict'
+
 const request = require('request')
 const striptags = require('striptags')
 
@@ -64,7 +66,7 @@ module.exports = {
   },
 
   overview: function(token, installation, callback) {
-    giid = typeof installation == 'string' ? installation : installation.giid
+    const giid = typeof installation == 'string' ? installation : installation.giid
     apiClient({
       uri: `/installation/${giid}/overview`,
       headers: {
