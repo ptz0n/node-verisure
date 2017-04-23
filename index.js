@@ -1,15 +1,30 @@
 const request = require('request')
 const striptags = require('striptags')
 
-const API_HOST = 'e-api02.verisure.com'
+const API_HOSTS = [
+  'e-api01.verisure.com',
+  'e-api02.verisure.com'
+]
 
+let apiHost = API_HOSTS[0]
 
-const apiClient = request.defaults({
-  baseUrl: `https://${API_HOST}/xbn/2/`,
-  headers: {
-    'Host': API_HOST
+const apiClient = function(options, callback, retrying) {
+  if(retrying) {
+    apiHost = API_HOSTS[0] == apiHost ? API_HOSTS[1] : API_HOSTS[0]
   }
-})
+
+  options.baseUrl = `https://${apiHost}/xbn/2/`
+  options.headers = options.headers || {}
+  options.headers['Host'] = apiHost
+
+  return request(options, function(err, res, body) {
+    if(err && callback) return callback(err)
+    if(res.statusCode > 499 && !retrying) {
+      return apiClient(options, callback, true)
+    }
+    callback && callback(err, res, body)
+  })
+}
 
 const buildCredientials = function(email, password) {
   return Buffer.from(`CPE/${email}:${password}`, 'ascii').toString('base64')
@@ -29,6 +44,7 @@ module.exports = {
       }
     }, function(err, res, body) {
       if(err) return callback(err)
+      if(res.statusCode !== 200) return callback(res.body)
       callback(null, striptags(body).trim())
     })
   },
@@ -42,6 +58,7 @@ module.exports = {
       },
       json: true
     }, function(err, res, body) {
+      if(res.statusCode !== 200) return callback(res.body)
       callback(err, body)
     })
   },
@@ -56,6 +73,7 @@ module.exports = {
       },
       json: true
     }, function(err, res, body) {
+      if(res.statusCode !== 200) return callback(res.body)
       callback(err, body)
     })
   }
