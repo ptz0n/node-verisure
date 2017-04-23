@@ -6,21 +6,46 @@ const verisure = require('../index')
 
 
 nock.disableNetConnect()
-scope = nock('https://e-api02.verisure.com')
+scope = nock(/https:\/\/e-api0\d.verisure.com/)
+https://e-api01.verisure.com/xbn/2/whatever
 
 
 describe('Utils', function() {
-  it('should expose api client with defaults', function(done) {
+  it('should build credientials', function() {
+    credientials = verisure._buildCredientials('email', 'password')
+    assert.equal(credientials, 'Q1BFL2VtYWlsOnBhc3N3b3Jk')
+  })
+})
+
+describe('Client', function() {
+  it('should expose api client with defaults', function() {
     scope.get('/xbn/2/').reply(200)
+    req = verisure._apiClient({uri: '/'})
+    assert.equal(req.uri.href, 'https://e-api01.verisure.com/xbn/2/')
+    assert.equal(req.headers.Host, 'e-api01.verisure.com')
+  })
+
+  it('should retry once with different host', function(done) {
+    scope.get('/xbn/2/').reply(500, 'Not this one')
+    scope.get('/xbn/2/').reply(200, 'Success')
     verisure._apiClient({uri: '/'}, function(err, res, body) {
-      assert.deepEqual(res.req.headers, { host: 'e-api02.verisure.com' })
+      assert.equal(err, null)
+      assert.equal(res.statusCode, 200)
+      assert.equal(res.request.host, 'e-api02.verisure.com')
+      assert.equal(body, 'Success')
       done()
     })
   })
 
-  it('should build credientials', function() {
-    credientials = verisure._buildCredientials('email', 'password')
-    assert.equal(credientials, 'Q1BFL2VtYWlsOnBhc3N3b3Jk')
+  it('should retry again with different host', function(done) {
+    scope.get('/xbn/2/').reply(500, 'Not this one')
+    scope.get('/xbn/2/').reply(200, 'Success')
+    verisure._apiClient({uri: '/'}, function(err, res, body) {
+      assert.equal(err, null)
+      assert.equal(res.request.host, 'e-api01.verisure.com')
+      assert.equal(body, 'Success')
+      done()
+    })
   })
 })
 
