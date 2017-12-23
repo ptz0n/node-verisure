@@ -1,10 +1,10 @@
+.PHONY: test release
+
 export PATH := $(shell npm bin):$(PATH)
 SHELL := /bin/bash
 
-.PHONY: test release
-
 test:
-	mocha
+	npm test
 
 release:
 	npm version minor || exit 1

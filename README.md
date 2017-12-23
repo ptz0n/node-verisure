@@ -13,7 +13,7 @@ This software is not affiliated with Verisure Holding AB and the developers take
 ### Installation
 
 ```bash
-$ npm install verisure
+$ npm install verisure --save
 ```
 
 ### Usage
