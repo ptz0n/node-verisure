@@ -17,11 +17,12 @@ class VerisureInstallation {
       options,
       { uri: `/installation/${this.giid}/${options.uri}` },
     );
+
     return this.baseClient(requestOptions);
   }
 
   getOverview() {
-    return this.client({ uri: 'overview' });
+    return this.client({ uri: 'overview', json: true });
   }
 }
 
@@ -77,7 +78,8 @@ class Verisure {
   getInstallations() {
     return this.client({ uri: `/installation/search?email=${this.email}`, json: true })
       .then(installations =>
-        installations.map(installation => new VerisureInstallation(installation, this.client)));
+        installations
+          .map(installation => new VerisureInstallation(installation, this.client.bind(this))));
   }
 }
 

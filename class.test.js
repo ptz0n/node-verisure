@@ -25,12 +25,19 @@ describe('Verisure', () => {
       .replyWithFile(200, `${__dirname}/test/responses/installations.json`);
 
     return verisure.getInstallations().then((installations) => {
-      expect.assertions(3);
+      expect.assertions(5);
       expect(installations.length).toBe(1);
 
       const [installation] = installations;
       expect(installation.giid).toBe('123456789');
       expect(typeof installation.getOverview).toBe('function');
+
+      scope.get(`/xbn/2/installation/${installation.giid}/overview`)
+        .replyWithFile(200, `${__dirname}/test/responses/overview.json`);
+      return installation.getOverview().then((overview) => {
+        expect(typeof overview).toBe('object');
+        expect(overview.armstateCompatible).toBeTruthy();
+      });
     });
   });
 });
