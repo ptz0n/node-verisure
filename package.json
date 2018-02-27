@@ -28,7 +28,7 @@
     "striptags": "^3.0.1"
   },
   "devDependencies": {
-    "mocha": "^3.2.0",
+    "mocha": "^4.1.0",
     "nock": "^9.0.2"
   }
 }
