@@ -40,4 +40,29 @@ describe('Verisure', () => {
       });
     });
   });
+
+  it('should retry once with different host', (done) => {
+    expect(verisure.host).toEqual('e-api01.verisure.com');
+
+    scope.get('/xbn/2/').reply(500, 'Not this one')
+      .get('/xbn/2/').reply(200, 'Success');
+    verisure.client({ uri: '/' }).then((body) => {
+      expect(body).toBe('Success');
+      expect(verisure.host).toEqual('e-api02.verisure.com');
+
+      scope.get('/xbn/2/').reply(500, 'Still not this one')
+        .get('/xbn/2/').reply(200, 'Success again');
+      verisure.client({ uri: '/' }).then((secondBody) => {
+        expect(secondBody).toBe('Success again');
+        expect(verisure.host).toEqual('e-api01.verisure.com');
+
+        done();
+      });
+    });
+  });
+
+  it('should reject on errors like timeouts etc', () => {
+    scope.get('/xbn/2/').replyWithError('Oh no');
+    return expect(verisure.client({ uri: '/' })).rejects.toThrowError('Oh no');
+  });
 });

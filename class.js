@@ -51,7 +51,7 @@ class Verisure {
       request(requestOptions, (err, res, body) => {
         if (err) return reject(err);
         if (res.statusCode > 499 && !retrying) {
-          return this.client(options, true);
+          return resolve(this.client(options, true));
         }
         return resolve(body);
       });
