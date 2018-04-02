@@ -30,6 +30,7 @@ class Verisure {
   constructor(email, password) {
     this.email = email;
     this.password = password;
+    this.token = null;
     [this.host] = HOSTS;
   }
 
@@ -46,12 +47,18 @@ class Verisure {
       },
     );
     requestOptions.headers.Host = this.host;
+    if (this.token) {
+      requestOptions.headers.Cookie = `vid=${this.token}`;
+    }
 
     return new Promise((resolve, reject) => {
       request(requestOptions, (err, res, body) => {
         if (err) return reject(err);
         if (res.statusCode > 499 && !retrying) {
           return resolve(this.client(options, true));
+        }
+        if (res.statusCode > 299) {
+          return reject(body);
         }
         return resolve(body);
       });

@@ -65,4 +65,9 @@ describe('Verisure', () => {
     scope.get('/xbn/2/').replyWithError('Oh no');
     return expect(verisure.client({ uri: '/' })).rejects.toThrowError('Oh no');
   });
+
+  it('should reject on response code higher than 299', () => {
+    scope.get('/xbn/2/').reply(300, 'Doh');
+    return expect(verisure.client({ uri: '/' })).rejects.toThrowError('Doh');
+  });
 });
