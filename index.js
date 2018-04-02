@@ -1,82 +1,93 @@
-'use strict'
+const request = require('request');
+const striptags = require('striptags');
 
-const request = require('request')
-const striptags = require('striptags')
-
-const API_HOSTS = [
+const HOSTS = [
   'e-api01.verisure.com',
-  'e-api02.verisure.com'
-]
+  'e-api02.verisure.com',
+];
 
-let apiHost = API_HOSTS[0]
-
-const apiClient = function(options, callback, retrying) {
-  if(retrying) {
-    apiHost = API_HOSTS[0] == apiHost ? API_HOSTS[1] : API_HOSTS[0]
+class VerisureInstallation {
+  constructor(installation, client) {
+    this.giid = installation.giid;
+    this.baseClient = client;
   }
 
-  options.baseUrl = `https://${apiHost}/xbn/2/`
-  options.headers = options.headers || {}
-  options.headers['Host'] = apiHost
+  client(options) {
+    const requestOptions = Object.assign(
+      options,
+      { uri: `/installation/${this.giid}/${options.uri}` },
+    );
 
-  return request(options, function(err, res, body) {
-    if(err && callback) return callback(err)
-    if(res.statusCode > 499 && !retrying) {
-      return apiClient(options, callback, true)
+    return this.baseClient(requestOptions);
+  }
+
+  getOverview() {
+    return this.client({ uri: 'overview', json: true });
+  }
+}
+
+class Verisure {
+  constructor(email, password) {
+    this.email = email;
+    this.password = password;
+    this.token = null;
+    [this.host] = HOSTS;
+  }
+
+  client(options, retrying = false) {
+    if (retrying) {
+      this.host = HOSTS[0] === this.host ? HOSTS[1] : HOSTS[0];
     }
-    callback && callback(err, res, body)
-  })
-}
 
-const buildCredientials = function(email, password) {
-  return Buffer.from(`CPE/${email}:${password}`, 'ascii').toString('base64')
-}
+    const requestOptions = Object.assign(
+      options,
+      {
+        baseUrl: `https://${this.host}/xbn/2/`,
+        headers: options.headers || {},
+      },
+    );
+    requestOptions.headers.Host = this.host;
+    if (this.token) {
+      requestOptions.headers.Cookie = `vid=${this.token}`;
+    }
 
+    return new Promise((resolve, reject) => {
+      request(requestOptions, (err, res, body) => {
+        if (err) return reject(err);
+        if (res.statusCode > 499 && !retrying) {
+          return resolve(this.client(options, true));
+        }
+        if (res.statusCode > 299) {
+          return reject(body);
+        }
+        return resolve(body);
+      });
+    });
+  }
 
-module.exports = {
-  _apiClient: apiClient,
-  _buildCredientials: buildCredientials,
+  buildCredientials() {
+    return Buffer.from(`CPE/${this.email}:${this.password}`, 'ascii').toString('base64');
+  }
 
-  auth: function(email, password, callback) {
-    apiClient({
+  getToken() {
+    return this.client({
       uri: '/cookie',
       headers: {
         'Content-Type': 'application/xml;charset=UTF-8',
-        'Authorization': `Basic ${buildCredientials(email, password)}`
-      }
-    }, function(err, res, body) {
-      if(err) return callback(err)
-      if(res.statusCode !== 200) return callback(res.body)
-      callback(null, striptags(body).trim())
-    })
-  },
-
-  installations: function(token, email, callback) {
-    apiClient({
-      uri: `/installation/search?email=${email}`,
-      headers: {
-        'Cookie': `vid=${token}`,
-        'Accept': 'application/json, text/javascript, */*; q=0.01'
+        Authorization: `Basic ${this.buildCredientials()}`,
       },
-      json: true
-    }, function(err, res, body) {
-      if(res.statusCode !== 200) return callback(res.body)
-      callback(err, body)
-    })
-  },
+    }).then((body) => {
+      this.token = striptags(body).trim();
+      return this.token;
+    });
+  }
 
-  overview: function(token, installation, callback) {
-    const giid = typeof installation == 'string' ? installation : installation.giid
-    apiClient({
-      uri: `/installation/${giid}/overview`,
-      headers: {
-        'Cookie': `vid=${token}`,
-        'Accept': 'application/json, text/javascript, */*; q=0.01'
-      },
-      json: true
-    }, function(err, res, body) {
-      if(res.statusCode !== 200) return callback(res.body)
-      callback(err, body)
-    })
+  getInstallations() {
+    return this.client({ uri: `/installation/search?email=${this.email}`, json: true })
+      .then(installations =>
+        installations
+          .map(installation => new VerisureInstallation(installation, this.client.bind(this))));
   }
 }
+
+module.exports = Verisure;

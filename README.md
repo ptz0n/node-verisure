@@ -19,7 +19,7 @@ $ npm install verisure --save
 ### Usage
 
 ```javascript
-const Verisure = require('./class');
+const Verisure = require('verisure');
 
 const verisure = new Verisure('my@email.com', 'mysecretpassword');
 

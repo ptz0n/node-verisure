@@ -1,6 +1,6 @@
 const nock = require('nock');
 
-const Verisure = require('./class');
+const Verisure = require('./index');
 
 nock.disableNetConnect();
 const scope = nock(/https:\/\/e-api0\d.verisure.com/);
