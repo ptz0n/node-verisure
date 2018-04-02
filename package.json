@@ -4,7 +4,7 @@
   "description": "A module for reading and changing status of Verisure devices.",
   "main": "index.js",
   "scripts": {
-    "test": "jest --env=node --coverage"
+    "test": "eslint class.js class.test.js && jest --env=node --coverage"
   },
   "repository": {
     "type": "git",
