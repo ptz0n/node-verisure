@@ -19,20 +19,17 @@ $ npm install verisure --save
 ### Usage
 
 ```javascript
-var verisure = require('verisure')
+const Verisure = require('./class');
 
-var email = 'my@email.com',
-    password = 'mysecretpassword'
+const verisure = new Verisure('my@email.com', 'mysecretpassword');
 
-verisure.auth(email, password, function(err, token) {
-  console.log('TOKEN:', token)
-
-  verisure.installations(token, email, function(err, installations) {
-    console.log('INSTALLATIONS:', installations)
-
-    verisure.overview(token, installations[0], function(err, overview) {
-      console.log('OVERVIEW:', overview)
-    })
+verisure.getToken()
+  .then(() => verisure.getInstallations())
+  .then(installations => installations[0].getOverview())
+  .then((overview) => {
+    console.log('OVERVIEW:', overview);
   })
-})
+  .catch((error) => {
+    console.error(error);
+  });
 ```
