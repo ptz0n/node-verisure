@@ -28,10 +28,11 @@ class VerisureInstallation {
 
 class Verisure {
   constructor(email, password) {
+    [this.host] = HOSTS;
     this.email = email;
     this.password = password;
+    this.promises = {};
     this.token = null;
-    [this.host] = HOSTS;
   }
 
   client(options, retrying = false) {
@@ -51,8 +52,15 @@ class Verisure {
       requestOptions.headers.Cookie = `vid=${this.token}`;
     }
 
-    return new Promise((resolve, reject) => {
+    const requestRef = JSON.stringify(requestOptions);
+    let promise = this.promises[requestRef];
+    if (promise) {
+      return promise;
+    }
+
+    promise = new Promise((resolve, reject) => {
       request(requestOptions, (err, res, body) => {
+        delete this.promises[requestRef];
         if (err) return reject(err);
         if (res.statusCode > 499 && !retrying) {
           return resolve(this.client(options, true));
@@ -63,6 +71,9 @@ class Verisure {
         return resolve(body);
       });
     });
+
+    this.promises[requestRef] = promise;
+    return promise;
   }
 
   buildCredientials() {

@@ -70,4 +70,13 @@ describe('Verisure', () => {
     scope.get('/xbn/2/').reply(300, 'Doh');
     return expect(verisure.client({ uri: '/' })).rejects.toThrowError('Doh');
   });
+
+  it('should make one request when invoked in paralell', () => {
+    scope.get('/xbn/2/').reply(200, 'Only once');
+    const options = { uri: '/' };
+    return Promise.all([
+      verisure.client(options),
+      verisure.client(options),
+    ]);
+  });
 });

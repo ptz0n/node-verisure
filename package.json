@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/ptz0n/node-verisure#readme",
   "dependencies": {
-    "request": "^2.79.0",
+    "request": "^2.85.0",
     "striptags": "^3.0.1"
   },
   "devDependencies": {
