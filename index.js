@@ -13,11 +13,9 @@ class VerisureInstallation {
   }
 
   client(options) {
-    const requestOptions = Object.assign(
-      options,
-      { uri: `/installation/${this.giid}/${options.uri}` },
-    );
-
+    const requestOptions = Object.assign(options, {
+      uri: `/installation/${this.giid}/${options.uri}`,
+    });
     return this.baseClient(requestOptions);
   }
 
@@ -40,13 +38,10 @@ class Verisure {
       this.host = HOSTS[0] === this.host ? HOSTS[1] : HOSTS[0];
     }
 
-    const requestOptions = Object.assign(
-      options,
-      {
-        baseUrl: `https://${this.host}/xbn/2/`,
-        headers: options.headers || {},
-      },
-    );
+    const requestOptions = Object.assign(options, {
+      baseUrl: `https://${this.host}/xbn/2/`,
+      headers: options.headers || {},
+    });
     requestOptions.headers.Host = this.host;
     if (this.token) {
       requestOptions.headers.Cookie = `vid=${this.token}`;
