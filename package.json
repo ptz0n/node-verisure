@@ -1,6 +1,6 @@
 {
   "name": "verisure",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A module for reading and changing status of Verisure devices.",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/ptz0n/node-verisure#readme",
   "engines": {
-    "node" : ">=6"
+    "node": ">=6"
   },
   "dependencies": {
     "request": "^2.85.0",
