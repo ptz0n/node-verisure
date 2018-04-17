@@ -9,6 +9,8 @@ const HOSTS = [
 class VerisureInstallation {
   constructor(installation, client) {
     this.giid = installation.giid;
+    this.locale = installation.locale;
+
     this.baseClient = client;
   }
 
