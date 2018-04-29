@@ -25,12 +25,13 @@ describe('Verisure', () => {
       .replyWithFile(200, `${__dirname}/test/responses/installations.json`);
 
     return verisure.getInstallations().then((installations) => {
-      expect.assertions(6);
+      expect.assertions(7);
       expect(installations.length).toBe(1);
 
       const [installation] = installations;
       expect(installation.giid).toBe('123456789');
       expect(installation.locale).toBe('sv_SE');
+      expect(installation.config.locale).toBe('sv_SE');
       expect(typeof installation.getOverview).toBe('function');
 
       scope.get(`/xbn/2/installation/${installation.giid}/overview`)
