@@ -1,0 +1,6 @@
+.eslintrc.js
+.gitattributes
+.travis.yml
+coverage
+Makefile
+test*
