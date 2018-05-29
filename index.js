@@ -23,7 +23,7 @@ class VerisureInstallation {
   }
 
   getOverview() {
-    return this.client({ uri: 'overview', json: true });
+    return this.client({ uri: 'overview' });
   }
 }
 
@@ -44,6 +44,7 @@ class Verisure {
     const requestOptions = Object.assign(options, {
       baseUrl: `https://${this.host}/xbn/2/`,
       headers: options.headers || {},
+      json: typeof options.json === 'undefined' ? true : options.json,
     });
     requestOptions.headers.Host = this.host;
     if (this.token) {
@@ -85,6 +86,7 @@ class Verisure {
         'Content-Type': 'application/xml;charset=UTF-8',
         Authorization: `Basic ${this.buildCredientials()}`,
       },
+      json: null,
     }).then((body) => {
       this.token = striptags(body).trim();
       return this.token;
@@ -92,7 +94,7 @@ class Verisure {
   }
 
   getInstallations() {
-    return this.client({ uri: `/installation/search?email=${this.email}`, json: true })
+    return this.client({ uri: `/installation/search?email=${this.email}` })
       .then(installations =>
         installations
           .map(installation => new VerisureInstallation(installation, this.client.bind(this))));
