@@ -34,7 +34,7 @@
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-jest": "^21.5.0",
-    "eslint": "^4.13.1",
+    "eslint": "^5.0.0",
     "jest": "^22.0.3",
     "nock": "^9.0.2"
   }
