@@ -95,9 +95,8 @@ class Verisure {
 
   getInstallations() {
     return this.client({ uri: `/installation/search?email=${this.email}` })
-      .then(installations =>
-        installations
-          .map(installation => new VerisureInstallation(installation, this.client.bind(this))));
+      .then(installations => installations
+        .map(installation => new VerisureInstallation(installation, this.client.bind(this))));
   }
 }
 
