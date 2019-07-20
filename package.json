@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/ptz0n/node-verisure#readme",
   "engines": {
-    "node": ">=6"
+    "node": ">=8"
   },
   "dependencies": {
     "request": "^2.85.0",
@@ -34,7 +34,7 @@
     "eslint-config-airbnb-base": "^13.0.0",
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-jest": "^22.11.1",
-    "eslint": "^5.0.1",
+    "eslint": "^6.0.1",
     "jest": "^22.0.3",
     "nock": "^10.0.2"
   }
