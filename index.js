@@ -1,31 +1,12 @@
 const request = require('request');
 const striptags = require('striptags');
 
+const VerisureInstallation = require('./installation');
+
 const HOSTS = [
   'e-api01.verisure.com',
   'e-api02.verisure.com',
 ];
-
-class VerisureInstallation {
-  constructor(installation, client) {
-    this.giid = installation.giid;
-    this.locale = installation.locale;
-    this.config = installation;
-
-    this.baseClient = client;
-  }
-
-  client(options) {
-    const requestOptions = Object.assign(options, {
-      uri: `/installation/${this.giid}/${options.uri}`,
-    });
-    return this.baseClient(requestOptions);
-  }
-
-  getOverview() {
-    return this.client({ uri: 'overview' });
-  }
-}
 
 class Verisure {
   constructor(email, password) {
@@ -95,8 +76,8 @@ class Verisure {
 
   getInstallations() {
     return this.client({ uri: `/installation/search?email=${this.email}` })
-      .then(installations => installations
-        .map(installation => new VerisureInstallation(installation, this.client.bind(this))));
+      .then((installations) => installations
+        .map((installation) => new VerisureInstallation(installation, this.client.bind(this))));
   }
 }
 
