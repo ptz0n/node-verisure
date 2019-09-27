@@ -9,13 +9,13 @@ class VerisureInstallation {
 
   client(options) {
     const requestOptions = Object.assign(options, {
-      uri: `/installation/${this.giid}/${options.uri}`,
+      url: `/installation/${this.giid}/${options.url}`,
     });
     return this.baseClient(requestOptions);
   }
 
   getOverview() {
-    return this.client({ uri: 'overview' });
+    return this.client({ url: 'overview' });
   }
 }
 
