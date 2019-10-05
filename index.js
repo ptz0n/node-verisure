@@ -26,6 +26,7 @@ class Verisure {
       baseURL: `https://${this.host}/xbn/2/`,
       headers: options.headers || {},
     });
+
     requestOptions.headers.Host = this.host;
     if (this.token) {
       requestOptions.headers.Cookie = `vid=${this.token}`;
