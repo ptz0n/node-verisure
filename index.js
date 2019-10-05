@@ -1,4 +1,4 @@
-const request = require('request');
+const axios = require('axios');
 const striptags = require('striptags');
 
 const VerisureInstallation = require('./installation');
@@ -23,10 +23,10 @@ class Verisure {
     }
 
     const requestOptions = Object.assign(options, {
-      baseUrl: `https://${this.host}/xbn/2/`,
+      baseURL: `https://${this.host}/xbn/2/`,
       headers: options.headers || {},
-      json: typeof options.json === 'undefined' ? true : options.json,
     });
+
     requestOptions.headers.Host = this.host;
     if (this.token) {
       requestOptions.headers.Cookie = `vid=${this.token}`;
@@ -38,19 +38,20 @@ class Verisure {
       return promise;
     }
 
-    promise = new Promise((resolve, reject) => {
-      request(requestOptions, (err, res, body) => {
+    promise = axios(requestOptions)
+      .then(({ data }) => {
         delete this.promises[requestRef];
-        if (err) return reject(err);
-        if (res.statusCode > 499 && !retrying) {
-          return resolve(this.client(options, true));
+        return data;
+      })
+      .catch((error) => {
+        delete this.promises[requestRef];
+
+        if (error.response && error.response.status > 499 && !retrying) {
+          return this.client(options, true);
         }
-        if (res.statusCode > 299) {
-          return reject(body);
-        }
-        return resolve(body);
+
+        return Promise.reject((error.response && error.response.data) || error);
       });
-    });
 
     this.promises[requestRef] = promise;
     return promise;
@@ -62,12 +63,12 @@ class Verisure {
 
   getToken() {
     return this.client({
-      uri: '/cookie',
+      url: '/cookie',
       headers: {
         'Content-Type': 'application/xml;charset=UTF-8',
         Authorization: `Basic ${this.buildCredientials()}`,
+        Accept: 'text/plain',
       },
-      json: null,
     }).then((body) => {
       this.token = striptags(body).trim();
       return this.token;
@@ -75,7 +76,7 @@ class Verisure {
   }
 
   getInstallations() {
-    return this.client({ uri: `/installation/search?email=${this.email}` })
+    return this.client({ url: `/installation/search?email=${this.email}` })
       .then((installations) => installations
         .map((installation) => new VerisureInstallation(installation, this.client.bind(this))));
   }

@@ -48,13 +48,13 @@ describe('Verisure', () => {
 
     scope.get('/xbn/2/').reply(500, 'Not this one')
       .get('/xbn/2/').reply(200, 'Success');
-    verisure.client({ uri: '/' }).then((body) => {
+    verisure.client({ url: '/' }).then((body) => {
       expect(body).toBe('Success');
       expect(verisure.host).toEqual('e-api02.verisure.com');
 
       scope.get('/xbn/2/').reply(500, 'Still not this one')
         .get('/xbn/2/').reply(200, 'Success again');
-      verisure.client({ uri: '/' }).then((secondBody) => {
+      verisure.client({ url: '/' }).then((secondBody) => {
         expect(secondBody).toBe('Success again');
         expect(verisure.host).toEqual('e-api01.verisure.com');
 
@@ -65,17 +65,17 @@ describe('Verisure', () => {
 
   it('should reject on errors like timeouts etc', () => {
     scope.get('/xbn/2/').replyWithError('Oh no');
-    return expect(verisure.client({ uri: '/' })).rejects.toThrowError('Oh no');
+    return expect(verisure.client({ url: '/' })).rejects.toThrowError('Oh no');
   });
 
   it('should reject on response code higher than 299', () => {
     scope.get('/xbn/2/').reply(300, 'Doh');
-    return expect(verisure.client({ uri: '/' })).rejects.toThrowError('Doh');
+    return expect(verisure.client({ url: '/' })).rejects.toThrowError('Doh');
   });
 
   it('should make one request when invoked in paralell', () => {
     scope.get('/xbn/2/').reply(200, 'Only once');
-    const options = { uri: '/' };
+    const options = { url: '/' };
     return Promise.all([
       verisure.client(options),
       verisure.client(options),
