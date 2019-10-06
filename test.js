@@ -70,7 +70,7 @@ describe('Verisure', () => {
 
   it('should reject on response code higher than 299', () => {
     scope.get('/xbn/2/').reply(300, 'Doh');
-    return expect(verisure.client({ url: '/' })).rejects.toThrowError('Doh');
+    return expect(verisure.client({ url: '/' })).rejects.toMatch('Doh');
   });
 
   it('should make one request when invoked in paralell', () => {
