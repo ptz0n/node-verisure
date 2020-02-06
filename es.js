@@ -1,6 +1,8 @@
 const axios = require('axios');
 const { parseStringPromise } = require('xml2js');
 
+// const supportedCountries = ['es', 'fr', 'pt']
+
 const client = axios.create({
   baseURL: 'https://mob2217.securitasdirect.es:12010/WebService/ws.do',
 });
