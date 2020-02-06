@@ -7,7 +7,22 @@ const client = axios.create({
   baseURL: 'https://mob2217.securitasdirect.es:12010/WebService/ws.do',
 });
 
-client.interceptors.response.use((response) => parseStringPromise(response.data));
+client.interceptors.response.use(async (response) => {
+  const data = await parseStringPromise(response.data);
+
+  if (data.PET.RES[0] !== 'OK') {
+    const error = new Error('Unknown response');
+    error.response = {
+      ...response,
+      data,
+    };
+    error.config = response.config;
+
+    return Promise.reject(error);
+  }
+
+  return data;
+});
 
 const buildId = (user) => {
   const date = new Date().toISOString().substring(0, 19).replace(/\D/g, '');
