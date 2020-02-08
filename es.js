@@ -34,8 +34,8 @@ const login = (username, password, country) => client({
   params: {
     request: 'LOGIN',
     ID: buildId(username),
-    country,
-    lang: country.toUpperCase(),
+    Country: country.toUpperCase(),
+    lang: country,
     user: username,
     pwd: password,
   },

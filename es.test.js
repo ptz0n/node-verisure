@@ -14,8 +14,8 @@ describe('ES', () => {
     const query = qs.stringify({
       request: 'LOGIN',
       ID: 'IPH_________________________john20200206210254',
-      country: 'es',
-      lang: 'ES',
+      Country: 'ES',
+      lang: 'es',
       user: 'john',
       pwd: 'topsecret',
     });
