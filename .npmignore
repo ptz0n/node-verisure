@@ -1,6 +1,6 @@
 .eslintrc.js
 .gitattributes
-.travis.yml
+.github
 coverage
 Makefile
 test*

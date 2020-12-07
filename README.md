@@ -2,7 +2,7 @@
 
 [![](https://badges.greenkeeper.io/ptz0n/node-verisure.svg)](https://greenkeeper.io/)
 
-[![](https://travis-ci.org/ptz0n/node-verisure.svg?branch=master)](https://travis-ci.org/ptz0n/node-verisure)
+[![GitHub Actions badge](https://github.com/ptz0n/node-verisure/workflows/Test/badge.svg)](https://github.com/ptz0n/node-verisure/actions?query=workflow%3ATest)
 
 A module for reading and changing status of Verisure devices.
 
