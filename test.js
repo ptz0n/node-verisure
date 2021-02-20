@@ -6,18 +6,20 @@ nock.disableNetConnect();
 const scope = nock(/https:\/\/e-api0\d.verisure.com/);
 
 describe('Verisure', () => {
-  scope.get('/xbn/2/cookie').replyWithFile(200, `${__dirname}/test/responses/cookie.xml`);
   const verisure = new Verisure('email', 'password');
 
-  it('should get token', () => {
-    expect.assertions(1);
-    return expect(verisure.getToken()).resolves.toEqual('myExampleToken');
-  });
+  it('should get token', async () => {
+    nock(/https:\/\/automation0\d.verisure.com/)
+      .get('/auth/login').replyWithFile(200, `${__dirname}/test/responses/login.json`, {
+        'Set-Cookie': 'vid=myExampleToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+      });
 
-  it('should build credientials', () => {
-    const credientials = verisure.buildCredientials();
-    expect.assertions(1);
-    expect(credientials).toBe('Q1BFL2VtYWlsOnBhc3N3b3Jk');
+    expect.assertions(2);
+
+    const token = await verisure.getToken();
+
+    expect(token).toEqual('myExampleToken');
+    expect(verisure.cookie).toEqual('vid=myExampleToken');
   });
 
   it('should get installations', () => {
@@ -70,7 +72,7 @@ describe('Verisure', () => {
 
   it('should reject on response code higher than 299', () => {
     scope.get('/xbn/2/').reply(300, 'Doh');
-    return expect(verisure.client({ url: '/' })).rejects.toMatch('Doh');
+    return expect(verisure.client({ url: '/' })).rejects.toThrowError('Request failed with status code 300');
   });
 
   it('should make one request when invoked in paralell', () => {

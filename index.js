@@ -1,7 +1,11 @@
 const axios = require('axios');
-const striptags = require('striptags');
 
 const VerisureInstallation = require('./installation');
+
+const AUTH_HOSTS = [
+  'automation01.verisure.com',
+  'automation02.verisure.com',
+];
 
 const HOSTS = [
   'e-api01.verisure.com',
@@ -11,68 +15,86 @@ const HOSTS = [
 class Verisure {
   constructor(email, password) {
     [this.host] = HOSTS;
+    [this.authHost] = AUTH_HOSTS;
     this.email = email;
     this.password = password;
     this.promises = {};
-    this.token = null;
+    this.cookie = null;
   }
 
-  client(options, retrying = false) {
+  async makeRequest(options, retrying = false) {
     if (retrying) {
-      this.host = HOSTS[0] === this.host ? HOSTS[1] : HOSTS[0];
+      if (options.auth) {
+        this.authHost = AUTH_HOSTS[+!AUTH_HOSTS.indexOf(this.authHost)];
+      } else {
+        this.host = HOSTS[+!HOSTS.indexOf(this.host)];
+      }
     }
 
-    const requestOptions = Object.assign(options, {
-      baseURL: `https://${this.host}/xbn/2/`,
+    const request = {
+      ...options,
+      baseURL: options.auth
+        ? `https://${this.authHost}/`
+        : `https://${this.host}/xbn/2/`,
+    };
+
+    try {
+      return await axios(request);
+    } catch (error) {
+      if (error.response && error.response.status > 499 && !retrying) {
+        return this.makeRequest(options, true);
+      }
+
+      throw error;
+    }
+  }
+
+  client(options) {
+    const request = {
+      ...options,
       headers: options.headers || {},
-    });
+    };
 
-    requestOptions.headers.Host = this.host;
-    if (this.token) {
-      requestOptions.headers.Cookie = `vid=${this.token}`;
+    if (this.cookie) {
+      request.headers.Cookie = this.cookie;
     }
 
-    const requestRef = JSON.stringify(requestOptions);
+    const requestRef = JSON.stringify(request);
     let promise = this.promises[requestRef];
     if (promise) {
       return promise;
     }
 
-    promise = axios(requestOptions)
+    promise = this.makeRequest(request)
       .then(({ data }) => {
         delete this.promises[requestRef];
         return data;
       })
       .catch((error) => {
         delete this.promises[requestRef];
-
-        if (error.response && error.response.status > 499 && !retrying) {
-          return this.client(options, true);
-        }
-
-        return Promise.reject((error.response && error.response.data) || error);
+        return Promise.reject(error);
       });
 
     this.promises[requestRef] = promise;
     return promise;
   }
 
-  buildCredientials() {
-    return Buffer.from(`CPE/${this.email}:${this.password}`, 'ascii').toString('base64');
-  }
-
-  getToken() {
-    return this.client({
-      url: '/cookie',
-      headers: {
-        'Content-Type': 'application/xml;charset=UTF-8',
-        Authorization: `Basic ${this.buildCredientials()}`,
-        Accept: 'text/plain',
+  async getToken() {
+    const { headers } = await this.makeRequest({
+      url: '/auth/login',
+      auth: {
+        username: this.email,
+        password: this.password,
       },
-    }).then((body) => {
-      this.token = striptags(body).trim();
-      return this.token;
     });
+
+    const cookies = headers['set-cookie'];
+
+    this.cookie = cookies && cookies
+      .map((cookie) => cookie.split(';')[0])
+      .find((cookie) => cookie.startsWith('vid='));
+
+    return this.cookie.split('=')[1];
   }
 
   getInstallations() {
