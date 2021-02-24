@@ -1,6 +1,6 @@
 {
   "name": "verisure",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "A module for reading and changing status of Verisure devices.",
   "main": "index.js",
   "scripts": {
