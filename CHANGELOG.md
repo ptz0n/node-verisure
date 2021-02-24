@@ -1,4 +1,8 @@
-## 3.0.0 (TBD)
+## 3.1.0 (Feb 24, 2021)
+
+* Support new auth hosts.
+
+## 3.0.0 (Oct 5, 2019)
 
 * __Breaking:__ Replace `request` with `axios` as underlying http client.
 * __Breaking:__ Drop support for Node <8.
