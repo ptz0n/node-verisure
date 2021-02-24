@@ -1,0 +1,6 @@
+{
+  "accessToken": "mocked-access-token",
+  "accessTokenMaxAgeSeconds": 900,
+  "refreshToken": "mocked-refresh-token",
+  "refreshTokenMaxAgeSeconds": 63071999
+}
