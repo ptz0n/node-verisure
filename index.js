@@ -80,7 +80,7 @@ class Verisure {
   }
 
   async getToken() {
-    const { headers } = await this.makeRequest({
+    const { status, headers } = await this.makeRequest({
       url: '/auth/login',
       auth: {
         username: this.email,
@@ -93,6 +93,10 @@ class Verisure {
     this.cookie = cookies && cookies
       .map((cookie) => cookie.split(';')[0])
       .find((cookie) => cookie.startsWith('vid='));
+
+    if (!this.cookie) {
+      throw new Error(`Cookie missing from response: HTTP ${status}`);
+    }
 
     return this.cookie.split('=')[1];
   }

@@ -1,3 +1,7 @@
+## 3.1.1 (Feb 28, 2021)
+
+* Handle auth with missing cookie.
+
 ## 3.1.0 (Feb 24, 2021)
 
 * Support new auth hosts.
