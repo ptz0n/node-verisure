@@ -1,3 +1,7 @@
+## 4.0.0 (Mar 16, 2021)
+
+* __Breaking:__ Support for MFA.
+
 ## 3.1.1 (Feb 28, 2021)
 
 * Handle auth with missing cookie.
