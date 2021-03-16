@@ -13,18 +13,20 @@ const HOSTS = [
 ];
 
 class Verisure {
-  constructor(email, password) {
+  constructor(email, password, cookies = []) {
     [this.host] = HOSTS;
     [this.authHost] = AUTH_HOSTS;
     this.email = email;
     this.password = password;
     this.promises = {};
-    this.cookie = null;
+    this.cookies = cookies;
   }
 
   async makeRequest(options, retrying = false) {
+    const isAuth = options.url.startsWith('/auth');
+
     if (retrying) {
-      if (options.auth) {
+      if (isAuth) {
         this.authHost = AUTH_HOSTS[+!AUTH_HOSTS.indexOf(this.authHost)];
       } else {
         this.host = HOSTS[+!HOSTS.indexOf(this.host)];
@@ -33,10 +35,15 @@ class Verisure {
 
     const request = {
       ...options,
-      baseURL: options.auth
+      baseURL: isAuth
         ? `https://${this.authHost}/`
         : `https://${this.host}/xbn/2/`,
+      headers: options.headers || {},
     };
+
+    if (this.cookies) {
+      request.headers.Cookie = this.cookies.join(';');
+    }
 
     try {
       return await axios(request);
@@ -49,16 +56,7 @@ class Verisure {
     }
   }
 
-  client(options) {
-    const request = {
-      ...options,
-      headers: options.headers || {},
-    };
-
-    if (this.cookie) {
-      request.headers.Cookie = this.cookie;
-    }
-
+  client(request) {
     const requestRef = JSON.stringify(request);
     let promise = this.promises[requestRef];
     if (promise) {
@@ -79,26 +77,43 @@ class Verisure {
     return promise;
   }
 
-  async getToken() {
-    const { status, headers } = await this.makeRequest({
+  getCookie(prefix) {
+    return this.cookies.find((cookie) => cookie.startsWith(prefix));
+  }
+
+  async getToken(code) {
+    let authRequest = {
       url: '/auth/login',
       auth: {
         username: this.email,
         password: this.password,
       },
-    });
+    };
+
+    if (code) {
+      // 2. Continue MFA flow, send code.
+      authRequest = {
+        method: 'post',
+        url: '/auth/mfa/validate',
+        data: { token: code },
+      };
+    }
+
+    const { headers } = await this.makeRequest(authRequest);
 
     const cookies = headers['set-cookie'];
 
-    this.cookie = cookies && cookies
-      .map((cookie) => cookie.split(';')[0])
-      .find((cookie) => cookie.startsWith('vid='));
+    this.cookies = cookies && cookies.map((cookie) => cookie.split(';')[0]);
 
-    if (!this.cookie) {
-      throw new Error(`Cookie missing from response: HTTP ${status}`);
+    if (this.getCookie('vs-stepup')) {
+      // 1. Start MFA flow, request code.
+      await this.makeRequest({
+        method: 'post',
+        url: '/auth/mfa',
+      });
     }
 
-    return this.cookie.split('=')[1];
+    return this.cookies;
   }
 
   getInstallations() {
