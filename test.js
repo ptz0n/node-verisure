@@ -13,6 +13,10 @@ const scope = nock(/https:\/\/e-api0\d.verisure.com/, {
 describe('Verisure', () => {
   const verisure = new Verisure('email', 'password');
 
+  beforeEach(() => {
+    verisure.cookies = ['vid=myExampleToken'];
+  });
+
   it('should get token', async () => {
     const authScope = nock(/https:\/\/automation0\d.verisure.com/);
 
@@ -26,16 +30,58 @@ describe('Verisure', () => {
         'Set-Cookie': 'vid=myExampleToken; Version=1; Path=/; Domain=verisure.com; Secure;',
       });
 
-    const token = await verisure.getToken();
+    const cookies = await verisure.getToken();
 
     expect.assertions(3);
-    expect(token).toEqual('myExampleToken');
-    expect(verisure.cookie).toEqual('vid=myExampleToken');
+    expect(cookies[0]).toEqual('vid=myExampleToken');
+    expect(verisure.cookies[0]).toEqual('vid=myExampleToken');
     expect(verisure.authHost).toEqual('automation02.verisure.com');
   });
 
+  it('should get step up token', async () => {
+    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
+
+    authScope
+      .get('/auth/login')
+      .basicAuth({ user: 'email', pass: 'password' })
+      .replyWithFile(200, `${__dirname}/test/responses/login.json`, {
+        'Set-Cookie': 'vs-stepup=myStepUpToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+      });
+
+    authScope
+      .post('/auth/mfa')
+      .reply(200, '');
+
+    const [stepUpCookie] = await verisure.getToken();
+
+    expect(stepUpCookie).toEqual('vs-stepup=myStepUpToken');
+    expect(verisure.getCookie('vs-stepup')).toEqual('vs-stepup=myStepUpToken');
+
+    authScope
+      .post('/auth/mfa/validate', { token: 'ASD123' })
+      .reply(200, '', {
+        'Set-Cookie': [
+          'vid=myToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+          'vs-access=myAccessToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+          'vs-refresh=myRefreshToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+        ],
+      });
+
+    const cookies = await verisure.getToken('ASD123');
+
+    const expectedCookies = [
+      'vid=myToken',
+      'vs-access=myAccessToken',
+      'vs-refresh=myRefreshToken',
+    ];
+
+    expect(cookies).toEqual(expectedCookies);
+    expect(verisure.cookies).toEqual(expectedCookies);
+  });
+
   it('should get installations', async () => {
-    scope.get(`/xbn/2/installation/search?email=${verisure.email}`)
+    scope.get('/xbn/2/installation/search')
+      .query({ email: verisure.email })
       .replyWithFile(200, `${__dirname}/test/responses/installations.json`);
 
     const installations = await verisure.getInstallations();

@@ -33,3 +33,27 @@ verisure.getToken()
     console.error(error);
   });
 ```
+
+### Multi-factor authentication
+
+For users with MFA enabled, you need to invoke `getToken` twice. First without arguments, second with the one-time code.
+
+```javascript
+const verisure = new Verisure(email, password);
+
+await verisure.getToken();
+
+console.log('One-time code sent.');
+
+await verisure.getToken(code);
+
+console.log(verisure.getCookie('vid'));
+```
+
+Once you retrieve the `vid` cookie, this can be used to make authenticated requests.
+
+```javascript
+const verisure = new Verisure('my@email.com', null, ['vid=myTopSecretToken']);
+
+const installations = await verisure.getInstallations();
+```
