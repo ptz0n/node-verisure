@@ -18,13 +18,13 @@ describe('Verisure', () => {
   });
 
   it('should get token', async () => {
-    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
+    const authScope = nock(/https:\/\/m-api0\d.verisure.com/);
 
     // Verify retry on different host.
-    authScope.get('/auth/login').reply(500, 'Not this one');
+    authScope.post('/auth/login').reply(500, 'Not this one');
 
     authScope
-      .get('/auth/login')
+      .post('/auth/login')
       .basicAuth({ user: 'email', pass: 'password' })
       .replyWithFile(200, `${__dirname}/test/responses/login.json`, {
         'Set-Cookie': 'vid=myExampleToken; Version=1; Path=/; Domain=verisure.com; Secure;',
@@ -35,14 +35,14 @@ describe('Verisure', () => {
     expect.assertions(3);
     expect(cookies[0]).toEqual('vid=myExampleToken');
     expect(verisure.cookies[0]).toEqual('vid=myExampleToken');
-    expect(verisure.authHost).toEqual('automation02.verisure.com');
+    expect(verisure.authHost).toEqual('m-api02.verisure.com');
   });
 
   it('should get step up token', async () => {
-    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
+    const authScope = nock(/https:\/\/m-api0\d.verisure.com/);
 
     authScope
-      .get('/auth/login')
+      .post('/auth/login')
       .basicAuth({ user: 'email', pass: 'password' })
       .replyWithFile(200, `${__dirname}/test/responses/login.json`, {
         'Set-Cookie': 'vs-stepup=myStepUpToken; Version=1; Path=/; Domain=verisure.com; Secure;',

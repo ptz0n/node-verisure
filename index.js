@@ -3,8 +3,8 @@ const axios = require('axios');
 const VerisureInstallation = require('./installation');
 
 const AUTH_HOSTS = [
-  'automation01.verisure.com',
-  'automation02.verisure.com',
+  'm-api01.verisure.com',
+  'm-api02.verisure.com',
 ];
 
 const HOSTS = [
@@ -38,7 +38,11 @@ class Verisure {
       baseURL: isAuth
         ? `https://${this.authHost}/`
         : `https://${this.host}/xbn/2/`,
-      headers: options.headers || {},
+      headers: {
+        'User-Agent': 'node-verisure',
+        accept: 'application/json',
+        ...(options.headers || {}),
+      },
     };
 
     if (this.cookies) {
@@ -83,6 +87,7 @@ class Verisure {
 
   async getToken(code) {
     let authRequest = {
+      method: 'post',
       url: '/auth/login',
       auth: {
         username: this.email,
