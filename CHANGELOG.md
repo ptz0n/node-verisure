@@ -1,3 +1,7 @@
+## 4.1.0 (Oct 8, 2021)
+
+* Update hostname and method for authentication.
+
 ## 4.0.0 (Mar 16, 2021)
 
 * __Breaking:__ Support for MFA.
