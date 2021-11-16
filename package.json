@@ -27,7 +27,7 @@
     "node": ">=10"
   },
   "dependencies": {
-    "axios": "^0.21.0"
+    "axios": "^0.24.0"
   },
   "devDependencies": {
     "eslint": "^7.21.0",
