@@ -2,20 +2,14 @@ const axios = require('axios');
 
 const VerisureInstallation = require('./installation');
 
-const AUTH_HOSTS = [
-  'm-api01.verisure.com',
-  'm-api02.verisure.com',
-];
-
 const HOSTS = [
-  'e-api01.verisure.com',
-  'e-api02.verisure.com',
+  'automation01.verisure.com',
+  'automation02.verisure.com',
 ];
 
 class Verisure {
   constructor(email, password, cookies = []) {
     [this.host] = HOSTS;
-    [this.authHost] = AUTH_HOSTS;
     this.email = email;
     this.password = password;
     this.promises = {};
@@ -26,17 +20,13 @@ class Verisure {
     const isAuth = options.url.startsWith('/auth');
 
     if (retrying) {
-      if (isAuth) {
-        this.authHost = AUTH_HOSTS[+!AUTH_HOSTS.indexOf(this.authHost)];
-      } else {
-        this.host = HOSTS[+!HOSTS.indexOf(this.host)];
-      }
+      this.host = HOSTS[+!HOSTS.indexOf(this.host)];
     }
 
     const request = {
       ...options,
       baseURL: isAuth
-        ? `https://${this.authHost}/`
+        ? `https://${this.host}/`
         : `https://${this.host}/xbn/2/`,
       headers: {
         'User-Agent': 'node-verisure',

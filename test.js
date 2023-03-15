@@ -4,7 +4,7 @@ const Verisure = require('./index');
 
 nock.disableNetConnect();
 
-const scope = nock(/https:\/\/e-api0\d.verisure.com/, {
+const scope = nock(/https:\/\/automation0\d.verisure.com/, {
   reqheaders: {
     cookie: (value) => value === 'vid=myExampleToken',
   },
@@ -18,7 +18,7 @@ describe('Verisure', () => {
   });
 
   it('should get token', async () => {
-    const authScope = nock(/https:\/\/m-api0\d.verisure.com/);
+    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
 
     // Verify retry on different host.
     authScope.post('/auth/login').reply(500, 'Not this one');
@@ -35,11 +35,11 @@ describe('Verisure', () => {
     expect.assertions(3);
     expect(cookies[0]).toEqual('vid=myExampleToken');
     expect(verisure.cookies[0]).toEqual('vid=myExampleToken');
-    expect(verisure.authHost).toEqual('m-api02.verisure.com');
+    expect(verisure.host).toEqual('automation02.verisure.com');
   });
 
   it('should get step up token', async () => {
-    const authScope = nock(/https:\/\/m-api0\d.verisure.com/);
+    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
 
     authScope
       .post('/auth/login')
@@ -105,19 +105,19 @@ describe('Verisure', () => {
   });
 
   it('should retry once with different host', (done) => {
-    expect(verisure.host).toEqual('e-api01.verisure.com');
+    verisure.host = 'automation01.verisure.com';
 
     scope.get('/xbn/2/').reply(500, 'Not this one')
       .get('/xbn/2/').reply(200, 'Success');
     verisure.client({ url: '/' }).then((body) => {
       expect(body).toBe('Success');
-      expect(verisure.host).toEqual('e-api02.verisure.com');
+      expect(verisure.host).toEqual('automation02.verisure.com');
 
       scope.get('/xbn/2/').reply(500, 'Still not this one')
         .get('/xbn/2/').reply(200, 'Success again');
       verisure.client({ url: '/' }).then((secondBody) => {
         expect(secondBody).toBe('Success again');
-        expect(verisure.host).toEqual('e-api01.verisure.com');
+        expect(verisure.host).toEqual('automation01.verisure.com');
 
         done();
       });
