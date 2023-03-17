@@ -25,9 +25,21 @@ const verisure = new Verisure('my@email.com', 'mysecretpassword');
 
 verisure.getToken()
   .then(() => verisure.getInstallations())
-  .then(installations => installations[0].getOverview())
-  .then((overview) => {
-    console.log('OVERVIEW:', overview);
+  .then((installations) => installations[0].client({
+    operationName: 'Broadband',
+    query: `query Broadband($giid: String!) {
+      installation(giid: $giid) {
+        broadband {
+          testDate
+          isBroadbandConnected
+          __typename
+        }
+        __typename
+      }
+    }`,
+  }))
+  .then((broadband) => {
+    console.log('BROADBAND:', broadband);
   })
   .catch((error) => {
     console.error(error);
