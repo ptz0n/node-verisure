@@ -1,3 +1,8 @@
+## 5.0.0 (Oct 18, 2023)
+
+* __Breaking:__ Auth using all cookies.
+* __Breaking:__ GraphQL interface.
+
 ## 4.1.0 (Oct 8, 2021)
 
 * Update hostname and method for authentication.
