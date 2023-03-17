@@ -47,13 +47,17 @@ console.log('One-time code sent.');
 
 await verisure.getToken(code);
 
-console.log(verisure.getCookie('vid'));
+console.log(verisure.cookies);
 ```
 
-Once you retrieve the `vid` cookie, this can be used to make authenticated requests.
+Once you retrieve the cookies, these can be used to make authenticated requests.
 
 ```javascript
-const verisure = new Verisure('my@email.com', null, ['vid=myTopSecretToken']);
+const verisure = new Verisure('my@email.com', null, [
+  'vid=myTopSecretToken',
+  'vs-access=myAccessToken',
+  'vs-refresh=myRefreshToken'
+]);
 
 const installations = await verisure.getInstallations();
 ```
