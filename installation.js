@@ -7,15 +7,14 @@ class VerisureInstallation {
     this.baseClient = client;
   }
 
-  client(options) {
-    const requestOptions = Object.assign(options, {
-      url: `/installation/${this.giid}/${options.url}`,
+  client({ variables, ...options }) {
+    return this.baseClient({
+      ...options,
+      variables: {
+        giid: this.giid,
+        ...variables,
+      },
     });
-    return this.baseClient(requestOptions);
-  }
-
-  getOverview() {
-    return this.client({ url: 'overview' });
   }
 }
 

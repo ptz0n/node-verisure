@@ -25,9 +25,21 @@ const verisure = new Verisure('my@email.com', 'mysecretpassword');
 
 verisure.getToken()
   .then(() => verisure.getInstallations())
-  .then(installations => installations[0].getOverview())
-  .then((overview) => {
-    console.log('OVERVIEW:', overview);
+  .then((installations) => installations[0].client({
+    operationName: 'Broadband',
+    query: `query Broadband($giid: String!) {
+      installation(giid: $giid) {
+        broadband {
+          testDate
+          isBroadbandConnected
+          __typename
+        }
+        __typename
+      }
+    }`,
+  }))
+  .then((broadband) => {
+    console.log('BROADBAND:', broadband);
   })
   .catch((error) => {
     console.error(error);
@@ -47,13 +59,17 @@ console.log('One-time code sent.');
 
 await verisure.getToken(code);
 
-console.log(verisure.getCookie('vid'));
+console.log(verisure.cookies);
 ```
 
-Once you retrieve the `vid` cookie, this can be used to make authenticated requests.
+Once you retrieve the cookies, these can be used to make authenticated requests.
 
 ```javascript
-const verisure = new Verisure('my@email.com', null, ['vid=myTopSecretToken']);
+const verisure = new Verisure('my@email.com', null, [
+  'vid=myTopSecretToken',
+  'vs-access=myAccessToken',
+  'vs-refresh=myRefreshToken'
+]);
 
 const installations = await verisure.getInstallations();
 ```

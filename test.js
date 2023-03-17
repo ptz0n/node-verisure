@@ -1,12 +1,18 @@
 const nock = require('nock');
 
-const Verisure = require('./index');
+const Verisure = require('.');
 
 nock.disableNetConnect();
 
-const scope = nock(/https:\/\/e-api0\d.verisure.com/, {
+const mockedCookies = [
+  'vid=myExampleToken',
+  'vs-access=foo',
+  'vs-refresh=bar',
+];
+
+const scope = nock(/https:\/\/automation0\d.verisure.com/, {
   reqheaders: {
-    cookie: (value) => value === 'vid=myExampleToken',
+    cookie: mockedCookies.join(';'),
   },
 });
 
@@ -14,11 +20,11 @@ describe('Verisure', () => {
   const verisure = new Verisure('email', 'password');
 
   beforeEach(() => {
-    verisure.cookies = ['vid=myExampleToken'];
+    verisure.cookies = mockedCookies;
   });
 
   it('should get token', async () => {
-    const authScope = nock(/https:\/\/m-api0\d.verisure.com/);
+    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
 
     // Verify retry on different host.
     authScope.post('/auth/login').reply(500, 'Not this one');
@@ -35,11 +41,11 @@ describe('Verisure', () => {
     expect.assertions(3);
     expect(cookies[0]).toEqual('vid=myExampleToken');
     expect(verisure.cookies[0]).toEqual('vid=myExampleToken');
-    expect(verisure.authHost).toEqual('m-api02.verisure.com');
+    expect(verisure.host).toEqual('automation02.verisure.com');
   });
 
   it('should get step up token', async () => {
-    const authScope = nock(/https:\/\/m-api0\d.verisure.com/);
+    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
 
     authScope
       .post('/auth/login')
@@ -79,67 +85,106 @@ describe('Verisure', () => {
     expect(verisure.cookies).toEqual(expectedCookies);
   });
 
+  it('should refresh cookies when expired', async () => {
+    scope
+      .get('/random/request').reply(401)
+
+      .get('/auth/token').reply(200, '', {
+        'Set-Cookie': [
+          'vid=myNewToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+          'vs-access=myNewAccessToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+          'vs-refresh=myNewRefreshToken; Version=1; Path=/; Domain=verisure.com; Secure;',
+        ],
+      });
+
+    nock(/https:\/\/automation0\d.verisure.com/)
+      .matchHeader('cookie', 'vid=myNewToken;vs-access=myNewAccessToken;vs-refresh=myNewRefreshToken')
+      .get('/random/request')
+      .reply(200, { some: 'response' });
+
+    const { data } = await verisure.makeRequest({
+      url: '/random/request',
+    });
+
+    const expectedCookies = [
+      'vid=myNewToken',
+      'vs-access=myNewAccessToken',
+      'vs-refresh=myNewRefreshToken',
+    ];
+
+    expect.assertions(2);
+    expect(verisure.cookies).toEqual(expectedCookies);
+    expect(data.some).toEqual('response');
+  });
+
+  it('should throw if unable to refresh cookies', () => {
+    scope
+      .post('/graphql').reply(401) // Expired cookies?
+      .get('/auth/token').reply(401); // Failed to refresh.
+
+    return expect(verisure.client({}))
+      .rejects.toThrowError('Request failed with status code 401');
+  });
+
   it('should get installations', async () => {
-    scope.get('/xbn/2/installation/search')
-      .query({ email: verisure.email })
-      .replyWithFile(200, `${__dirname}/test/responses/installations.json`);
+    scope.post('/graphql')
+      .replyWithFile(200, `${__dirname}/test/responses/fetch-all-installations.json`);
 
     const installations = await verisure.getInstallations();
 
-    expect.assertions(7);
+    expect.assertions(5);
     expect(installations.length).toBe(1);
 
     const [installation] = installations;
     expect(installation.giid).toBe('123456789');
     expect(installation.locale).toBe('sv_SE');
     expect(installation.config.locale).toBe('sv_SE');
-    expect(typeof installation.getOverview).toBe('function');
 
-    scope.get(`/xbn/2/installation/${installation.giid}/overview`)
-      .replyWithFile(200, `${__dirname}/test/responses/overview.json`);
+    scope.post('/graphql', { variables: { giid: '123456789' } })
+      .replyWithFile(200, `${__dirname}/test/responses/broadband.json`);
 
-    const overview = await installation.getOverview();
+    const broadband = await installation.client({});
 
-    expect(typeof overview).toBe('object');
-    expect(overview.armstateCompatible).toBeTruthy();
+    expect(typeof broadband).toBe('object');
   });
 
-  it('should retry once with different host', (done) => {
-    expect(verisure.host).toEqual('e-api01.verisure.com');
+  it('should retry once with different host', async () => {
+    expect.assertions(4);
+    verisure.host = 'automation01.verisure.com';
+    const url = '/graphql';
 
-    scope.get('/xbn/2/').reply(500, 'Not this one')
-      .get('/xbn/2/').reply(200, 'Success');
-    verisure.client({ url: '/' }).then((body) => {
-      expect(body).toBe('Success');
-      expect(verisure.host).toEqual('e-api02.verisure.com');
+    scope
+      .post(url).reply(500, 'Not this one')
+      .post(url).reply(200, { data: 'Success' });
 
-      scope.get('/xbn/2/').reply(500, 'Still not this one')
-        .get('/xbn/2/').reply(200, 'Success again');
-      verisure.client({ url: '/' }).then((secondBody) => {
-        expect(secondBody).toBe('Success again');
-        expect(verisure.host).toEqual('e-api01.verisure.com');
+    const firstResponse = await verisure.client({});
+    expect(firstResponse).toBe('Success');
+    expect(verisure.host).toEqual('automation02.verisure.com');
 
-        done();
-      });
-    });
+    scope
+      .post(url).reply(500, 'Still not this one')
+      .post(url).reply(200, { data: 'Success again' });
+
+    const secondResponse = await verisure.client({});
+    expect(secondResponse).toBe('Success again');
+    expect(verisure.host).toEqual('automation01.verisure.com');
   });
 
   it('should reject on errors like timeouts etc', () => {
-    scope.get('/xbn/2/').replyWithError('Oh no');
-    return expect(verisure.client({ url: '/' })).rejects.toThrowError('Oh no');
+    scope.post('/graphql').replyWithError('Oh no');
+    return expect(verisure.client({})).rejects.toThrowError('Oh no');
   });
 
   it('should reject on response code higher than 299', () => {
-    scope.get('/xbn/2/').reply(300, 'Doh');
-    return expect(verisure.client({ url: '/' })).rejects.toThrowError('Request failed with status code 300');
+    scope.post('/graphql').reply(300, 'Doh');
+    return expect(verisure.client({})).rejects.toThrowError('Request failed with status code 300');
   });
 
   it('should make one request when invoked in paralell', () => {
-    scope.get('/xbn/2/').reply(200, 'Only once');
-    const options = { url: '/' };
+    scope.post('/graphql').reply(200, 'Only once');
     return Promise.all([
-      verisure.client(options),
-      verisure.client(options),
+      verisure.client({}),
+      verisure.client({}),
     ]);
   });
 });
