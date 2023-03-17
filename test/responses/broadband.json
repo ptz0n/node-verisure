@@ -1,0 +1,12 @@
+{
+  "data": {
+    "installation": {
+      "broadband": {
+        "testDate": "2023-03-17T20:10:15.000Z",
+        "isBroadbandConnected": true,
+        "__typename": "Broadband"
+      },
+      "__typename": "Installation"
+    }
+  }
+}

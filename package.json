@@ -4,7 +4,7 @@
   "description": "A module for reading and changing status of Verisure devices.",
   "main": "index.js",
   "scripts": {
-    "test": "eslint *.js && jest --env=node --coverage"
+    "test": "eslint *.js && jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -15,9 +15,7 @@
     "automation",
     "verisure"
   ],
-  "author": [
-    "Erik Eng"
-  ],
+  "author": "Erik Eng",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/ptz0n/node-verisure/issues"
@@ -25,6 +23,9 @@
   "homepage": "https://github.com/ptz0n/node-verisure#readme",
   "engines": {
     "node": ">=10"
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "dependencies": {
     "axios": "^0.21.0"

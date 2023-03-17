@@ -1,0 +1,25 @@
+{
+  "data": {
+    "account": {
+      "installations": [
+        {
+          "giid": "123456789",
+          "alias": "Sveavägen",
+          "customerType": "HOUSEHOLD",
+          "dealerId": "ASD",
+          "subsidiary": null,
+          "pinCodeLength": 4,
+          "locale": "sv_SE",
+          "address": {
+            "street": "Sveavägen 1",
+            "city": "Stockholm",
+            "postalNumber": "SE-11157",
+            "__typename": "InstallationAddress"
+          },
+          "__typename": "Installation"
+        }
+      ],
+      "__typename": "Account"
+    }
+  }
+}

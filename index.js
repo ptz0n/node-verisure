@@ -16,18 +16,14 @@ class Verisure {
     this.cookies = cookies;
   }
 
-  async makeRequest(options, retrying = false) {
-    const isAuth = options.url.startsWith('/auth');
-
-    if (retrying) {
+  async makeRequest(options, changeHost = false) {
+    if (changeHost) {
       this.host = HOSTS[+!HOSTS.indexOf(this.host)];
     }
 
     const request = {
       ...options,
-      baseURL: isAuth
-        ? `https://${this.host}/`
-        : `https://${this.host}/xbn/2/`,
+      baseURL: `https://${this.host}/`,
       headers: {
         'User-Agent': 'node-verisure',
         accept: 'application/json',
@@ -42,12 +38,42 @@ class Verisure {
     try {
       return await axios(request);
     } catch (error) {
-      if (error.response && error.response.status > 499 && !retrying) {
-        return this.makeRequest(options, true);
+      if (!changeHost) {
+        const { status } = error.response || {};
+
+        // Retry with a different hostname.
+        if (status > 499) {
+          return this.makeRequest(options, true);
+        }
+
+        // Cookie expired and need to be refreshed.
+        if (status === 401 && !options.refreshingCookies) {
+          await this.refreshCookies();
+          return this.makeRequest(options);
+        }
       }
 
+      // Already tried a different hostname or got HTTP 300-400.
       throw error;
     }
+  }
+
+  async refreshCookies() {
+    const { headers } = await this.makeRequest({
+      method: 'get',
+      url: '/auth/token',
+      refreshingCookies: true,
+    });
+
+    this.setCookies(headers['set-cookie']);
+  }
+
+  setCookies(cookies) {
+    this.cookies = cookies && cookies.map((cookie) => cookie.split(';')[0]);
+  }
+
+  getCookie(prefix) {
+    return this.cookies.find((cookie) => cookie.startsWith(prefix));
   }
 
   client(request) {
@@ -57,8 +83,12 @@ class Verisure {
       return promise;
     }
 
-    promise = this.makeRequest(request)
-      .then(({ data }) => {
+    promise = this.makeRequest({
+      method: 'post',
+      url: '/graphql',
+      data: request,
+    })
+      .then(({ data: { data } }) => {
         delete this.promises[requestRef];
         return data;
       })
@@ -69,10 +99,6 @@ class Verisure {
 
     this.promises[requestRef] = promise;
     return promise;
-  }
-
-  getCookie(prefix) {
-    return this.cookies.find((cookie) => cookie.startsWith(prefix));
   }
 
   async getToken(code) {
@@ -95,10 +121,7 @@ class Verisure {
     }
 
     const { headers } = await this.makeRequest(authRequest);
-
-    const cookies = headers['set-cookie'];
-
-    this.cookies = cookies && cookies.map((cookie) => cookie.split(';')[0]);
+    this.setCookies(headers['set-cookie']);
 
     if (this.getCookie('vs-stepup')) {
       // 1. Start MFA flow, request code.
@@ -111,10 +134,35 @@ class Verisure {
     return this.cookies;
   }
 
-  getInstallations() {
-    return this.client({ url: `/installation/search?email=${this.email}` })
-      .then((installations) => installations
-        .map((installation) => new VerisureInstallation(installation, this.client.bind(this))));
+  async getInstallations() {
+    const { account: { installations } } = await this.client({
+      operationName: 'fetchAllInstallations',
+      variables: { email: this.email },
+      query: `query fetchAllInstallations($email: String!){
+        account(email: $email) {
+          installations {
+            giid
+            alias
+            customerType
+            dealerId
+            subsidiary
+            pinCodeLength
+            locale
+            address {
+              street
+              city
+              postalNumber
+              __typename
+            }
+            __typename
+          }
+          __typename
+        }
+      }`,
+    });
+
+    return installations
+      .map((installation) => new VerisureInstallation(installation, this.client.bind(this)));
   }
 }
 
