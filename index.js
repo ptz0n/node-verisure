@@ -1,12 +1,12 @@
 const axios = require('axios');
 
 const VerisureInstallation = require('./installation');
+const { GraphqlError } = require('./errors');
 
 const HOSTS = [
   'automation01.verisure.com',
   'automation02.verisure.com',
 ];
-
 class Verisure {
   constructor(email, password, cookies = []) {
     [this.host] = HOSTS;
@@ -88,7 +88,11 @@ class Verisure {
       url: '/graphql',
       data: request,
     })
-      .then(({ data: { data } }) => {
+      .then(({ data: { data, errors } }) => {
+        if (errors) {
+          throw new GraphqlError(errors);
+        }
+
         delete this.promises[requestRef];
         return data;
       })

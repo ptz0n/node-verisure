@@ -126,6 +126,17 @@ describe('Verisure', () => {
       .rejects.toThrowError('Request failed with status code 401');
   });
 
+  it('should throw if response contains errors', () => {
+    scope.post('/graphql').reply(200, {
+      errors: [{
+        message: 'Syntax Error: Expected Name, found ")".',
+      }],
+    });
+
+    return expect(verisure.client({}))
+      .rejects.toThrow('GraphQL response contains 1 errors');
+  });
+
   it('should get installations', async () => {
     scope.post('/graphql')
       .replyWithFile(200, `${__dirname}/test/responses/fetch-all-installations.json`);
