@@ -1,4 +1,8 @@
-## 5.0.0 (Oct 18, 2023)
+## 5.1.0 (Mar 19, 2023)
+
+* Throw on errors in GraphQL response.
+
+## 5.0.0 (Mar 18, 2023)
 
 * __Breaking:__ Auth using all cookies.
 * __Breaking:__ GraphQL interface.
