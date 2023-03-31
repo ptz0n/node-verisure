@@ -1,3 +1,7 @@
+## 5.1.1 (Mar 31, 2023)
+
+* Switch hostname on error in GraphQL response with status > 499
+
 ## 5.1.0 (Mar 19, 2023)
 
 * Throw on errors in GraphQL response.
