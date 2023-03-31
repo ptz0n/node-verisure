@@ -36,13 +36,23 @@ class Verisure {
     }
 
     try {
-      return await axios(request);
+      const response = await axios(request);
+
+      if (response.data.errors) {
+        throw new GraphqlError(response.data.errors);
+      }
+
+      return response;
     } catch (error) {
       if (!changeHost) {
         const { status } = error.response || {};
 
-        // Retry with a different hostname.
-        if (status > 499) {
+        const httpCode5xx = status > 499;
+        // SYS_00004 - SERVICE_UNAVAILABLE
+        const errorCode5xx = error.errors && error.errors
+          .find(({ data }) => data.status > 499);
+        if (httpCode5xx || errorCode5xx) {
+          // Retry with a different hostname.
           return this.makeRequest(options, true);
         }
 
@@ -88,11 +98,7 @@ class Verisure {
       url: '/graphql',
       data: request,
     })
-      .then(({ data: { data, errors } }) => {
-        if (errors) {
-          throw new GraphqlError(errors);
-        }
-
+      .then(({ data: { data } }) => {
         delete this.promises[requestRef];
         return data;
       })

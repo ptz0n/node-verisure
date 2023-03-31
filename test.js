@@ -87,9 +87,11 @@ describe('Verisure', () => {
 
   it('should refresh cookies when expired', async () => {
     scope
-      .get('/random/request').reply(401)
+      .get('/graphql').reply(500) // Time to switch hosts.
+      .post('/graphql').reply(401)
 
-      .get('/auth/token').reply(200, '', {
+      .get('/auth/token')
+      .reply(200, '', {
         'Set-Cookie': [
           'vid=myNewToken; Version=1; Path=/; Domain=verisure.com; Secure;',
           'vs-access=myNewAccessToken; Version=1; Path=/; Domain=verisure.com; Secure;',
@@ -98,12 +100,13 @@ describe('Verisure', () => {
       });
 
     nock(/https:\/\/automation0\d.verisure.com/)
-      .matchHeader('cookie', 'vid=myNewToken;vs-access=myNewAccessToken;vs-refresh=myNewRefreshToken')
-      .get('/random/request')
-      .reply(200, { some: 'response' });
+      .matchHeader('cookie',
+        'vid=myNewToken;vs-access=myNewAccessToken;vs-refresh=myNewRefreshToken')
+      .post('/graphql')
+      .reply(200, { data: 'datadata' });
 
-    const { data } = await verisure.makeRequest({
-      url: '/random/request',
+    const response = await verisure.client({
+      operation: 'something',
     });
 
     const expectedCookies = [
@@ -114,7 +117,7 @@ describe('Verisure', () => {
 
     expect.assertions(2);
     expect(verisure.cookies).toEqual(expectedCookies);
-    expect(data.some).toEqual('response');
+    expect(response).toEqual('datadata');
   });
 
   it('should throw if unable to refresh cookies', () => {
@@ -130,6 +133,9 @@ describe('Verisure', () => {
     scope.post('/graphql').reply(200, {
       errors: [{
         message: 'Syntax Error: Expected Name, found ")".',
+        data: {
+          status: 123,
+        },
       }],
     });
 
@@ -165,7 +171,17 @@ describe('Verisure', () => {
     const url = '/graphql';
 
     scope
-      .post(url).reply(500, 'Not this one')
+      .post(url).reply(200, {
+        errors: [{
+          message: 'Request Failed',
+          data: {
+            status: 503,
+            errorGroup: 'SERVICE_UNAVAILABLE',
+            errorCode: 'SYS_00004',
+            errorMessage: 'XBN Database is not activated',
+          },
+        }],
+      })
       .post(url).reply(200, { data: 'Success' });
 
     const firstResponse = await verisure.client({});
