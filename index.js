@@ -115,6 +115,7 @@ class Verisure {
     let authRequest = {
       method: 'post',
       url: '/auth/login',
+      data: {}, // Ensure a non-empty JSON body so axios sends Content-Type: application/json.
       auth: {
         username: this.email,
         password: this.password,
