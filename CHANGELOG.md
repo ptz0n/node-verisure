@@ -1,3 +1,7 @@
+## 5.1.2 (Mar 31, 2023)
+
+* Fix issue with HTTP 415 on auth request.
+
 ## 5.1.1 (Mar 31, 2023)
 
 * Switch hostname on error in GraphQL response with status > 499
