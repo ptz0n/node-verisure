@@ -115,6 +115,7 @@ class Verisure {
     let authRequest = {
       method: 'post',
       url: '/auth/login',
+      data: {}, // Make sure it's content-type application/json.
       auth: {
         username: this.email,
         password: this.password,
