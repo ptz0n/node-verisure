@@ -30,7 +30,8 @@ describe('Verisure', () => {
     authScope.post('/auth/login').reply(500, 'Not this one');
 
     authScope
-      .post('/auth/login')
+      .post('/auth/login', {})
+      .matchHeader('content-type', /application\/json/)
       .basicAuth({ user: 'email', pass: 'password' })
       .replyWithFile(200, `${__dirname}/test/responses/login.json`, {
         'Set-Cookie': 'vid=myExampleToken; Version=1; Path=/; Domain=verisure.com; Secure;',
