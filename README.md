@@ -4,7 +4,12 @@
 
 [![GitHub Actions badge](https://github.com/ptz0n/node-verisure/workflows/Test/badge.svg)](https://github.com/ptz0n/node-verisure/actions?query=workflow%3ATest)
 
-A module for reading and changing status of Verisure devices.
+A module for reading and changing status of Verisure devices. Zero runtime
+dependencies — requests are made with the platform's native `fetch`.
+
+### Requirements
+
+* Node.js 18 or later
 
 ### Legal Disclaimer
 
