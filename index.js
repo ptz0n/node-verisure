@@ -1,19 +1,25 @@
-const axios = require('axios');
-
 const VerisureInstallation = require('./installation');
-const { GraphqlError } = require('./errors');
+const { GraphqlError, HttpError } = require('./errors');
 
 const HOSTS = [
   'automation01.verisure.com',
   'automation02.verisure.com',
 ];
+
+const basicAuthHeader = ({ username, password }) => `Basic ${
+  Buffer.from(`${username}:${password}`).toString('base64')}`;
+
 class Verisure {
-  constructor(email, password, cookies = []) {
+  // `dispatcher` is an undici Dispatcher (e.g. a MockAgent) used to inject fake
+  // network responses in tests. Production callers should never need it: the
+  // platform default dispatcher already gives them Node's built-in fetch.
+  constructor(email, password, cookies = [], { dispatcher } = {}) {
     [this.host] = HOSTS;
     this.email = email;
     this.password = password;
     this.promises = {};
     this.cookies = cookies;
+    this.dispatcher = dispatcher;
   }
 
   async makeRequest(options, changeHost = false) {
@@ -21,29 +27,61 @@ class Verisure {
       this.host = HOSTS[+!HOSTS.indexOf(this.host)];
     }
 
-    const request = {
-      ...options,
-      baseURL: `https://${this.host}/`,
-      headers: {
-        'User-Agent': 'node-verisure',
-        accept: 'application/json',
-        ...(options.headers || {}),
-      },
+    const headers = {
+      'User-Agent': 'node-verisure',
+      accept: 'application/json',
+      ...(options.headers || {}),
     };
 
-    if (this.cookies) {
-      request.headers.Cookie = this.cookies.join(';');
+    if (this.cookies && this.cookies.length) {
+      headers.Cookie = this.cookies.join(';');
+    }
+
+    if (options.auth) {
+      headers.Authorization = basicAuthHeader(options.auth);
+    }
+
+    let body;
+    if (options.data !== undefined) {
+      headers['content-type'] = 'application/json';
+      body = JSON.stringify(options.data);
     }
 
     try {
-      const response = await axios(request);
+      const rawResponse = await fetch(`https://${this.host}${options.url}`, {
+        method: options.method,
+        headers,
+        body,
+        ...(this.dispatcher ? { dispatcher: this.dispatcher } : {}),
+      });
 
-      if (response.data.errors) {
-        throw new GraphqlError(response.data.errors);
+      const text = await rawResponse.text();
+      let data;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = text;
+        }
       }
 
-      return response;
-    } catch (error) {
+      if (!rawResponse.ok) {
+        throw new HttpError(rawResponse.status, data);
+      }
+
+      if (data && data.errors) {
+        throw new GraphqlError(data.errors);
+      }
+
+      return { data, headers: rawResponse.headers, status: rawResponse.status };
+    } catch (caughtError) {
+      // fetch() wraps DNS/socket/timeout failures in a generic "fetch failed"
+      // TypeError with the real cause nested underneath. Unwrap it so callers
+      // (and our own log messages) see something actionable.
+      const error = caughtError.message === 'fetch failed' && caughtError.cause
+        ? caughtError.cause
+        : caughtError;
+
       if (!changeHost) {
         const { status } = error.response || {};
 
@@ -75,7 +113,7 @@ class Verisure {
       refreshingCookies: true,
     });
 
-    this.setCookies(headers['set-cookie']);
+    this.setCookies(headers.getSetCookie());
   }
 
   setCookies(cookies) {
@@ -115,7 +153,7 @@ class Verisure {
     let authRequest = {
       method: 'post',
       url: '/auth/login',
-      data: {}, // Ensure a non-empty JSON body so axios sends Content-Type: application/json.
+      data: {}, // Ensure a non-empty JSON body so a Content-Type: application/json is sent.
       auth: {
         username: this.email,
         password: this.password,
@@ -132,7 +170,7 @@ class Verisure {
     }
 
     const { headers } = await this.makeRequest(authRequest);
-    this.setCookies(headers['set-cookie']);
+    this.setCookies(headers.getSetCookie());
 
     if (this.getCookie('vs-stepup')) {
       // 1. Start MFA flow, request code.

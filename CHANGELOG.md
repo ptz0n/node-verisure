@@ -1,3 +1,10 @@
+## 6.0.0 (Sep 26, 2026)
+
+* __Breaking:__ Node.js 18 is now the minimum supported version (was 10).
+* Replace the `axios` dependency with the platform's native `fetch`. `verisure` has no runtime dependencies anymore.
+* Errors now carry an `isRateLimited` flag when Verisure's response (HTTP 429, or a GraphQL error body containing a known rate-limit marker such as `AUT_00021`) indicates the account has hit an API rate/quota limit, so callers can back off instead of retrying immediately.
+* Network-level failures (DNS, timeout, connection reset) now surface with their original message instead of a generic "fetch failed".
+
 ## 5.1.2 (Mar 31, 2023)
 
 * Fix issue with HTTP 415 on auth request.

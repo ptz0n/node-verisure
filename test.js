@@ -1,8 +1,10 @@
-const nock = require('nock');
+const fs = require('fs');
+const path = require('path');
+const { MockAgent } = require('undici');
 
 const Verisure = require('.');
 
-nock.disableNetConnect();
+const ORIGIN = /^https:\/\/automation0\d\.verisure\.com$/;
 
 const mockedCookies = [
   'vid=myExampleToken',
@@ -10,69 +12,74 @@ const mockedCookies = [
   'vs-refresh=bar',
 ];
 
-const scope = nock(/https:\/\/automation0\d.verisure.com/, {
-  reqheaders: {
-    cookie: mockedCookies.join(';'),
-  },
-});
+const basicAuthHeader = Buffer.from('email:password').toString('base64');
+
+const readFixture = (name) => fs.readFileSync(path.join(__dirname, 'test/responses', name), 'utf8');
 
 describe('Verisure', () => {
-  const verisure = new Verisure('email', 'password');
+  let agent;
+  let pool;
+  let verisure;
 
   beforeEach(() => {
+    agent = new MockAgent();
+    agent.disableNetConnect();
+    pool = agent.get(ORIGIN);
+
+    verisure = new Verisure('email', 'password', [], { dispatcher: agent });
     verisure.cookies = mockedCookies;
   });
 
+  afterEach(() => agent.close());
+
   it('should get token', async () => {
-    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
+    expect.assertions(3);
 
-    // Verify retry on different host.
-    authScope.post('/auth/login').reply(500, 'Not this one');
-
-    authScope
-      .post('/auth/login', {})
-      .matchHeader('content-type', /application\/json/)
-      .basicAuth({ user: 'email', pass: 'password' })
-      .replyWithFile(200, `${__dirname}/test/responses/login.json`, {
-        'Set-Cookie': 'vid=myExampleToken; Version=1; Path=/; Domain=verisure.com; Secure;',
-      });
+    // First host tried is unavailable, plugin should retry with the other one.
+    pool.intercept({ path: '/auth/login', method: 'POST' }).reply(500, 'Not this one');
+    pool.intercept({
+      path: '/auth/login',
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Basic ${basicAuthHeader}`,
+      },
+      body: '{}',
+    }).reply(200, readFixture('login.json'), {
+      headers: { 'set-cookie': 'vid=myExampleToken; Version=1; Path=/; Domain=verisure.com; Secure;' },
+    });
 
     const cookies = await verisure.getToken();
 
-    expect.assertions(3);
     expect(cookies[0]).toEqual('vid=myExampleToken');
     expect(verisure.cookies[0]).toEqual('vid=myExampleToken');
     expect(verisure.host).toEqual('automation02.verisure.com');
   });
 
   it('should get step up token', async () => {
-    const authScope = nock(/https:\/\/automation0\d.verisure.com/);
-
-    authScope
-      .post('/auth/login')
-      .basicAuth({ user: 'email', pass: 'password' })
-      .replyWithFile(200, `${__dirname}/test/responses/login.json`, {
-        'Set-Cookie': 'vs-stepup=myStepUpToken; Version=1; Path=/; Domain=verisure.com; Secure;',
-      });
-
-    authScope
-      .post('/auth/mfa')
-      .reply(200, '');
+    pool.intercept({ path: '/auth/login', method: 'POST' }).reply(200, readFixture('login.json'), {
+      headers: { 'set-cookie': 'vs-stepup=myStepUpToken; Version=1; Path=/; Domain=verisure.com; Secure;' },
+    });
+    pool.intercept({ path: '/auth/mfa', method: 'POST' }).reply(200, '');
 
     const [stepUpCookie] = await verisure.getToken();
 
     expect(stepUpCookie).toEqual('vs-stepup=myStepUpToken');
     expect(verisure.getCookie('vs-stepup')).toEqual('vs-stepup=myStepUpToken');
 
-    authScope
-      .post('/auth/mfa/validate', { token: 'ASD123' })
-      .reply(200, '', {
-        'Set-Cookie': [
+    pool.intercept({
+      path: '/auth/mfa/validate',
+      method: 'POST',
+      body: JSON.stringify({ token: 'ASD123' }),
+    }).reply(200, '', {
+      headers: {
+        'set-cookie': [
           'vid=myToken; Version=1; Path=/; Domain=verisure.com; Secure;',
           'vs-access=myAccessToken; Version=1; Path=/; Domain=verisure.com; Secure;',
           'vs-refresh=myRefreshToken; Version=1; Path=/; Domain=verisure.com; Secure;',
         ],
-      });
+      },
+    });
 
     const cookies = await verisure.getToken('ASD123');
 
@@ -87,28 +94,27 @@ describe('Verisure', () => {
   });
 
   it('should refresh cookies when expired', async () => {
-    scope
-      .get('/graphql').reply(500) // Time to switch hosts.
-      .post('/graphql').reply(401)
+    expect.assertions(2);
 
-      .get('/auth/token')
-      .reply(200, '', {
-        'Set-Cookie': [
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(401);
+    pool.intercept({ path: '/auth/token', method: 'GET' }).reply(200, '', {
+      headers: {
+        'set-cookie': [
           'vid=myNewToken; Version=1; Path=/; Domain=verisure.com; Secure;',
           'vs-access=myNewAccessToken; Version=1; Path=/; Domain=verisure.com; Secure;',
           'vs-refresh=myNewRefreshToken; Version=1; Path=/; Domain=verisure.com; Secure;',
         ],
-      });
-
-    nock(/https:\/\/automation0\d.verisure.com/)
-      .matchHeader('cookie',
-        'vid=myNewToken;vs-access=myNewAccessToken;vs-refresh=myNewRefreshToken')
-      .post('/graphql')
-      .reply(200, { data: 'datadata' });
-
-    const response = await verisure.client({
-      operation: 'something',
+      },
     });
+    pool.intercept({
+      path: '/graphql',
+      method: 'POST',
+      headers: {
+        cookie: 'vid=myNewToken;vs-access=myNewAccessToken;vs-refresh=myNewRefreshToken',
+      },
+    }).reply(200, { data: 'datadata' });
+
+    const response = await verisure.client({ operation: 'something' });
 
     const expectedCookies = [
       'vid=myNewToken',
@@ -116,22 +122,19 @@ describe('Verisure', () => {
       'vs-refresh=myNewRefreshToken',
     ];
 
-    expect.assertions(2);
     expect(verisure.cookies).toEqual(expectedCookies);
     expect(response).toEqual('datadata');
   });
 
-  it('should throw if unable to refresh cookies', () => {
-    scope
-      .post('/graphql').reply(401) // Expired cookies?
-      .get('/auth/token').reply(401); // Failed to refresh.
+  it('should throw if unable to refresh cookies', async () => {
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(401); // Expired cookies?
+    pool.intercept({ path: '/auth/token', method: 'GET' }).reply(401); // Failed to refresh.
 
-    return expect(verisure.client({}))
-      .rejects.toThrowError('Request failed with status code 401');
+    await expect(verisure.client({})).rejects.toThrow('Request failed with status code 401');
   });
 
-  it('should throw if response contains errors', () => {
-    scope.post('/graphql').reply(200, {
+  it('should throw if response contains errors', async () => {
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(200, {
       errors: [{
         message: 'Syntax Error: Expected Name, found ")".',
         data: {
@@ -140,13 +143,26 @@ describe('Verisure', () => {
       }],
     });
 
-    return expect(verisure.client({}))
-      .rejects.toThrow('GraphQL response contains 1 errors');
+    await expect(verisure.client({})).rejects.toThrow('GraphQL response contains 1 errors');
+  });
+
+  it('should flag known rate-limit responses', async () => {
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(200, {
+      errors: [{
+        message: 'AUT_00021 Too many requests',
+        data: { status: 429 },
+      }],
+    });
+
+    await expect(verisure.client({})).rejects.toMatchObject({
+      name: 'GraphqlException',
+      isRateLimited: true,
+    });
   });
 
   it('should get installations', async () => {
-    scope.post('/graphql')
-      .replyWithFile(200, `${__dirname}/test/responses/fetch-all-installations.json`);
+    pool.intercept({ path: '/graphql', method: 'POST' })
+      .reply(200, readFixture('fetch-all-installations.json'));
 
     const installations = await verisure.getInstallations();
 
@@ -158,8 +174,11 @@ describe('Verisure', () => {
     expect(installation.locale).toBe('sv_SE');
     expect(installation.config.locale).toBe('sv_SE');
 
-    scope.post('/graphql', { variables: { giid: '123456789' } })
-      .replyWithFile(200, `${__dirname}/test/responses/broadband.json`);
+    pool.intercept({
+      path: '/graphql',
+      method: 'POST',
+      body: (body) => JSON.parse(body).variables.giid === '123456789',
+    }).reply(200, readFixture('broadband.json'));
 
     const broadband = await installation.client({});
 
@@ -169,48 +188,45 @@ describe('Verisure', () => {
   it('should retry once with different host', async () => {
     expect.assertions(4);
     verisure.host = 'automation01.verisure.com';
-    const url = '/graphql';
 
-    scope
-      .post(url).reply(200, {
-        errors: [{
-          message: 'Request Failed',
-          data: {
-            status: 503,
-            errorGroup: 'SERVICE_UNAVAILABLE',
-            errorCode: 'SYS_00004',
-            errorMessage: 'XBN Database is not activated',
-          },
-        }],
-      })
-      .post(url).reply(200, { data: 'Success' });
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(200, {
+      errors: [{
+        message: 'Request Failed',
+        data: {
+          status: 503,
+          errorGroup: 'SERVICE_UNAVAILABLE',
+          errorCode: 'SYS_00004',
+          errorMessage: 'XBN Database is not activated',
+        },
+      }],
+    });
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(200, { data: 'Success' });
 
     const firstResponse = await verisure.client({});
     expect(firstResponse).toBe('Success');
     expect(verisure.host).toEqual('automation02.verisure.com');
 
-    scope
-      .post(url).reply(500, 'Still not this one')
-      .post(url).reply(200, { data: 'Success again' });
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(500, 'Still not this one');
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(200, { data: 'Success again' });
 
     const secondResponse = await verisure.client({});
     expect(secondResponse).toBe('Success again');
     expect(verisure.host).toEqual('automation01.verisure.com');
   });
 
-  it('should reject on errors like timeouts etc', () => {
-    scope.post('/graphql').replyWithError('Oh no');
-    return expect(verisure.client({})).rejects.toThrowError('Oh no');
+  it('should reject on errors like timeouts etc', async () => {
+    pool.intercept({ path: '/graphql', method: 'POST' }).replyWithError(new Error('Oh no'));
+    await expect(verisure.client({})).rejects.toThrow('Oh no');
   });
 
-  it('should reject on response code higher than 299', () => {
-    scope.post('/graphql').reply(300, 'Doh');
-    return expect(verisure.client({})).rejects.toThrowError('Request failed with status code 300');
+  it('should reject on response code higher than 299', async () => {
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(300, 'Doh');
+    await expect(verisure.client({})).rejects.toThrow('Request failed with status code 300');
   });
 
-  it('should make one request when invoked in paralell', () => {
-    scope.post('/graphql').reply(200, 'Only once');
-    return Promise.all([
+  it('should make one request when invoked in parallel', async () => {
+    pool.intercept({ path: '/graphql', method: 'POST' }).reply(200, 'Only once');
+    await Promise.all([
       verisure.client({}),
       verisure.client({}),
     ]);
